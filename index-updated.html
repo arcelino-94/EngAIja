@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EngAIja — Inteligência para Redes Sociais</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <button class="account-menu-btn" id="accountMenuBtn" type="button" aria-label="Menu da conta">☰</button>
+  <div class="brand"><span class="dot"></span>EngAIja</div>
+  <p class="slogan" data-i18n="slogan">A IA que revela o que seus dados escondem</p>
+  <p class="pitch" data-i18n="pitch">Descubra quem realmente faz parte da sua audiência usando apenas o arquivo oficial do Instagram. Ideal para criadores, empresas e qualquer pessoa que queira entender melhor a própria rede.</p>
+  <div class="trust-badges">
+    <span data-i18n="badge1">🟢 Não pedimos sua senha</span>
+    <span data-i18n="badge2">🔒 Processamento local</span>
+    <span data-i18n="badge3">📦 Arquivo oficial do Instagram</span>
+  </div>
+</header>
+
+<!-- BOTÕES DE LOGIN/LOGOUT (novo) -->
+<div style="max-width: 920px; margin: 10px auto; padding: 0 16px; display: flex; gap: 10px; justify-content: flex-end;">
+  <button id="loginBtn" onclick="loginWithGoogle()" style="
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #4f5bd5, #962fbf);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+  ">
+    🔑 Login com Google
+  </button>
+  
+  <button id="logoutBtn" onclick="logout()" style="
+    padding: 10px 20px;
+    background: #f5f2f8;
+    color: #962fbf;
+    border: 1px solid #e6d5f5;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: none;
+  ">
+    🚪 Logout
+  </button>
+  
+  <div id="userInfo" style="display: none; text-align: right;">
+    <div id="userName" style="font-weight: 700; color: #1c1c1f; font-size: 0.9rem;"></div>
+    <div id="userEmail" style="font-size: 0.75rem; color: #6c6c76;"></div>
+  </div>
+</div>
+
+<div class="account-menu" id="accountMenu">
+  <div class="account-menu-inner">
+    <div class="account-menu-header">
+      <div class="account-menu-avatar">G</div>
+      <div>
+        <div class="account-menu-name">Convidado</div>
+        <div class="account-menu-plan">Plano gratuito</div>
+      </div>
+    </div>
+    <button class="account-menu-item" data-fake-action="login" onclick="loginWithGoogle()">🔑 Fazer login</button>
+    <button class="account-menu-item" data-fake-action="saved">💾 Meus dashboards salvos</button>
+    <button class="account-menu-item" data-fake-action="attach">📎 Anexar mais dados</button>
+    <button class="account-menu-item" data-fake-action="continuity">🔁 Continuar análise anterior</button>
+    <button class="account-menu-item" data-fake-action="subscription">⭐ Minha assinatura</button>
+    <div class="account-menu-divider"></div>
+    <button class="account-menu-item account-menu-exit" data-fake-action="logout" onclick="logout()">🚪 Sair</button>
+  </div>
+</div>
+
+<div class="subscribe-strip" id="subscribeStripTop">
+  <span class="subscribe-strip-text">⭐ Desbloqueie insights de desempenho e exportação ilimitada</span>
+  <button class="subscribe-strip-btn" id="btnOpenSubscribeTop">Assinar por $1/mês</button>
+</div>
+
+<main>
+  <div id="uploadScreen">
+    <div class="preview-wrap">
+      <div class="preview-label" data-i18n="previewLabel">Veja um exemplo antes de começar</div>
+      <div class="preview-card">
+        <div class="preview-stats">
+          <div class="preview-stat"><div class="n">843</div><div class="l" data-i18n="statFollowing">Seguindo</div></div>
+          <div class="preview-stat"><div class="n">1.05K</div><div class="l" data-i18n="statFollowers">Seguidores</div></div>
+          <div class="preview-stat"><div class="n">+207</div><div class="l" data-i18n="statDiff">Diferença</div></div>
+        </div>
+        <button class="preview-btn" id="btnVerExemplo" data-i18n="previewBtn">▶ Explorar demonstração</button>
+        <div class="preview-cta" data-i18n="previewCta">Conheça todas as análises usando um perfil fictício. Nenhuma informação pertence a uma pessoa real.</div>
+      </div>
+    </div>
+
+    <details class="accordion security">
+      <summary><span data-i18n="securityTitle">🔒 Seus dados ficam só no seu navegador</span> <span class="chev">›</span></summary>
+      <div class="acc-body">
+        <p data-i18n="securityBody">Todo o processamento acontece no seu navegador. Seu arquivo não é enviado para nossos servidores e sua senha nunca é solicitada.</p>
+      </div>
+    </details>
+
+    <details class="accordion howto">
+      <summary><span data-i18n="howtoTitle">📥 Como obter seu arquivo do Instagram</span> <span class="chev">›</span></summary>
+      <div class="acc-body">
+        <ol class="howto-steps">
+          <li data-i18n="howtoStep1">Abra o Instagram e acesse a Central de Contas.</li>
+          <li data-i18n="howtoStep2">Entre em "Suas informações e permissões" e escolha "Baixar suas informações".</li>
+          <li data-i18n="howtoStep3">Selecione apenas "Conexões" para gerar um arquivo menor e mais rápido.</li>
+          <li data-i18n="howtoStep4">Escolha o formato JSON e aguarde o arquivo chegar por e-mail.</li>
+        </ol>
+        <a class="howto-link" href="https://accountscenter.instagram.com/info_and_permissions/dyi/" target="_blank" rel="noopener" data-i18n="howtoBtn">Abrir Central de Contas →</a>
+      </div>
+    </details>
+
+    <div class="upload-card" id="dropZone">
+      <div style="font-size:2rem">📦</div>
+      <p><strong data-i18n="uploadTitle">Envie seu arquivo</strong></p>
+      <label class="upload-btn" for="fileInput" data-i18n="uploadBtn">Escolher arquivo .zip</label>
+      <input type="file" id="fileInput" accept=".zip">
+      <p class="file-hint" data-i18n="uploadHint">Selecione ou arraste o arquivo .zip enviado pelo Instagram</p>
+    </div>
+    <div id="status"></div>
+    <div id="errorBox"></div>
+  </div>
+
+  <div id="dashboard">
+    <div class="sim-banner" id="simBanner"><span data-i18n="simBannerText">⚠ Isto é uma simulação com dados fictícios, nenhum link leva a um perfil real</span><span class="exit" id="simExit" data-i18n="simExitBtn">Sair do exemplo</span></div>
+    <div class="analysis-date" id="analysisDate"></div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="overview">Visão geral</button>
+      <button class="tab-btn" data-tab="notback">Não seguem de volta</button>
+      <button class="tab-btn" data-tab="privacy">Privacidade</button>
+      <button class="tab-btn" data-tab="activity">Atividade</button>
+      <button class="tab-btn" data-tab="interactions">Interações</button>
+      <button class="tab-btn" data-tab="profile">Perfil</button>
+      <button class="tab-btn" data-tab="actions">Plano de ação</button>
+    </nav>
+    <section class="panel active" id="panel-overview">
+      <h2>Visão geral</h2>
+      <div class="charts-row">
+        <div class="chart-col chart-col-follow">
+          <div class="chart-wrap">
+            <canvas id="chartFollow"></canvas>
+            <img class="chart-print-img" id="chartFollowImg" alt="">
+          </div>
+          <div class="chart-legend-values" id="chartFollowLegend"></div>
+        </div>
+        <div class="chart-col">
+          <div class="chart-wrap">
+            <canvas id="chartActivity"></canvas>
+            <img class="chart-print-img" id="chartActivityImg" alt="">
+          </div>
+        </div>
+      </div>
+      <div id="overviewInsights"></div>
+    </section>
+    <section class="panel" id="panel-notback">
+      <h2>Quem você segue mas não te segue de volta</h2>
+      <div class="toolbar">
+        <input type="text" class="search-box" id="searchInput" placeholder="Procurar por username...">
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">Todos</button>
+          <button class="filter-btn" data-filter="deleted">Contas deletadas</button>
+          <button class="filter-btn" data-filter="active">Ativas</button>
+        </div>
+      </div>
+      <div class="count-line" id="countLine"></div>
+      <div class="profiles-grid" id="profilesList"></div>
+      <div class="pager" id="pager"></div>
+    </section>
+    <section class="panel" id="panel-privacy">
+      <h2>Privacidade e listas especiais</h2>
+      <div id="privacyContent"></div>
+    </section>
+    <section class="panel" id="panel-activity">
+      <h2>Sua atividade no Instagram</h2>
+      <div id="activityContent"></div>
+    </section>
+    <section class="panel" id="panel-interactions">
+      <h2>Interações e engajamento</h2>
+      <div id="interactionsContent"></div>
+    </section>
+    <section class="panel" id="panel-profile">
+      <h2>Informações do seu perfil</h2>
+      <div id="profileContent"></div>
+    </section>
+    <section class="panel" id="panel-actions">
+      <h2>Plano de ação</h2>
+      <div id="actionsContent"></div>
+    </section>
+    <div class="export-wrap">
+      <div class="subscribe-strip subscribe-strip-inline" id="subscribeStripExport">
+        <span class="subscribe-strip-text">⭐ Exportação gratuita limitada. Assine para exportar sem limites.</span>
+        <button class="subscribe-strip-btn" id="btnOpenSubscribeExport">Assinar por $1/mês</button>
+      </div>
+      <div class="export-menu" id="exportMenu">
+        <button data-export="report">📄 Relatório (PDF)<span class="desc">Visão geral, privacidade e plano de ação</span></button>
+        <button data-export="full">📋 Relatório + Lista completa (PDF)<span class="desc">Tudo, com a lista em colunas no final</span></button>
+        <button data-export="csv">📊 Lista para Excel (CSV)<span class="desc">Todos os perfis que não seguem de volta</span></button>
+      </div>
+      <button class="export-main-btn" id="exportMainBtn">⬇ Exportar dados</button>
+    </div>
+  </div>
+  <p style="text-align:center; margin-top:18px" id="resetWrap">
+    <span class="reset-link" id="resetLink" style="display:none" data-i18n="resetLink">Analisar outro arquivo</span>
+  </p>
+</main>
+
+<div class="pay-modal" id="payModal">
+  <div class="pay-box">
+    <div id="payFormScreen">
+      <div class="pay-header">
+        <span>Assinar EngAIja Premium</span>
+        <button class="pay-close" id="payClose" aria-label="Fechar">✕</button>
+      </div>
+      <div class="pay-plan-summary">
+        <div class="pay-plan-name">Plano mensal</div>
+        <div class="pay-plan-price">$1<span>/mês</span></div>
+        <div class="pay-plan-desc">Cancele quando quiser. Sem fidelidade.</div>
+      </div>
+      <div class="pay-methods">
+        <button type="button" class="pay-method-btn active" data-method="card">💳 Cartão</button>
+        <button type="button" class="pay-method-btn" data-method="pix">🔳 Pix</button>
+        <button type="button" class="pay-method-btn" data-method="paypal">🅿️ PayPal</button>
+      </div>
+      <form id="payFakeForm" class="pay-form">
+        <label class="pay-field">
+          <span>Número do cartão</span>
+          <input type="text" inputmode="numeric" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="off">
+        </label>
+        <div class="pay-field-row">
+          <label class="pay-field">
+            <span>Validade</span>
+            <input type="text" placeholder="MM/AA" maxlength="5" autocomplete="off">
+          </label>
+          <label class="pay-field">
+            <span>CVV</span>
+            <input type="text" inputmode="numeric" placeholder="123" maxlength="4" autocomplete="off">
+          </label>
+        </div>
+        <label class="pay-field">
+          <span>Nome impresso no cartão</span>
+          <input type="text" placeholder="Como está no cartão" autocomplete="off">
+        </label>
+        <div class="pay-3ds-note">🔒 Pagamento protegido com autenticação 3D Secure. Seus dados de cartão nunca são armazenados pelo EngAIja.</div>
+        <button type="submit" class="pay-submit-btn">Confirmar assinatura de $1/mês</button>
+        <div class="pay-badges">
+          <span>VISA</span><span>Mastercard</span><span>Elo</span><span>Amex</span>
+        </div>
+      </form>
+    </div>
+    <div id="paySuccessScreen" style="display:none">
+      <div class="pay-success-icon">✓</div>
+      <div class="pay-success-title">Simulação concluída</div>
+      <p class="pay-success-body">Esta é uma demonstração visual. Nenhuma cobrança real foi feita e nenhum dado de cartão foi enviado a lugar nenhum.</p>
+      <button class="pay-submit-btn" id="payBackToForm">Voltar</button>
+    </div>
+  </div>
+</div>
+
+<div class="about-modal" id="aboutModal">
+  <div class="about-box">
+    <h3 data-i18n="aboutBlock1Title">Nossa missão</h3>
+    <p data-i18n="aboutBlock1Body">Ajudar qualquer pessoa a compreender sua rede social sem precisar fornecer senha ou instalar aplicativos inseguros.</p>
+    <h3 data-i18n="aboutBlock2Title">Como funciona</h3>
+    <p data-i18n="aboutBlock2Body">Você baixa o arquivo oficial do Instagram. O processamento acontece direto no seu navegador. Nenhuma informação é enviada para nossos servidores.</p>
+    <h3 data-i18n="aboutBlock3Title">Nosso compromisso</h3>
+    <p data-i18n="aboutBlock3Body">Privacidade, transparência e análises úteis. Sem automações. Sem acesso à sua conta.</p>
+    <button class="about-close" id="aboutClose">Fechar</button>
+  </div>
+</div>
+
+<footer>
+  <span class="about-link" id="aboutLink" data-i18n="aboutLink">Sobre o EngAIja</span>
+  <p class="disclaimer" data-i18n="disclaimer">As análises são produzidas a partir do arquivo enviado pelo usuário. Alguns resultados representam interpretações estatísticas e podem variar conforme os dados disponibilizados pelo Instagram.</p>
+</footer>
+
+<!-- SCRIPTS (ordem IMPORTANTE) -->
+<script src="firebase-auth.js"></script>
+<script src="save-analysis.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
